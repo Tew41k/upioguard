@@ -4184,7 +4184,7 @@ end))
 local TATPF = Tabs.OTHR:AddLeftGroupbox("TAT Menu")
 
 TATPF:AddButton("LOAD TAT HUB FUNCTIONS", function()
-    local TATPREMF = loadstring(game:HttpGet("https://raw.githubusercontent.com/Tew41k/upioguard/refs/heads/main/scripts/TAT%20HUB.lua"))()
+    local TATPREMF = loadstring(game:HttpGet("https://github.com/Tew41k/upioguard/raw/refs/heads/main/src/app/key/%5Bscript_id%5D/components/TAT-F.lua"))()
 end)
 
 --// Script Load \\--
