@@ -5,7 +5,7 @@ local Window = Library.CreateLib("TAT DOORS MENU", "RJTheme3")
 local TabFun = Window:NewTab("FUN")
 local SectionDead = TabFun:NewSection("Die functions:")
 
-Section:NewToggle("Suffocation", "Kill you with oxygen suffocation", function(state)
+SectionDead:NewToggle("Suffocation", "Kill you with oxygen suffocation", function(state)
     if state then
         game.ReplicatedStorage.RemotesFolder.Underwater:FireServer(true)
     else
