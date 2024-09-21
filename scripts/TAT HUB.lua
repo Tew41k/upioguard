@@ -12,3 +12,6 @@ SectionDead:NewToggle("Suffocation", "Kill you with oxygen suffocation", functio
         game.ReplicatedStorage.RemotesFolder.Underwater:FireServer(false)
     end
 end)
+
+
+print("TAT FUNCTIONS LOADED SUCSESFUL!")
