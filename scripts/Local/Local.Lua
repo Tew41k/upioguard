@@ -1,3 +1,6 @@
+--!native
+--!optimize 2
+
 if not getgenv().mspaint_loaded then
     getgenv().mspaint_loaded = true
 else return end
@@ -207,7 +210,7 @@ local Options = getgenv().Linoria.Options
 local Toggles = getgenv().Linoria.Toggles
 
 local Window = Library:CreateWindow({
-	Title = "TAT-H DOORS",
+	Title = "TAT-H DOORS (V-1.0)",
 	Center = true,
 	AutoShow = true,
 	Resizable = true,
@@ -292,7 +295,7 @@ function Script.Functions.GetNearestAssetWithCondition(condition: () -> ())
 end
 
 function Script.Functions.Warn(message: string)
-    warn("WARN - TAT HUB:", message)
+    warn("WARN - mspaint:", message)
 end
 
 function Script.Functions.ESP(args: ESP)
@@ -1543,16 +1546,6 @@ local AutomationGroupBox = Tabs.Main:AddRightGroupbox("Automation") do
             end
         end)
     elseif isMines then
-        AutomationGroupBox:AddToggle("MinecartSpam", {
-            Text = "Spam Minecart Interact",
-            Default = false
-        }):AddKeyPicker("MinecartSpamKey", {
-            Default = "Q",
-            Text = "Spam Minecart Interact",
-            Mode = Library.IsMobile and "Toggle" or "Hold",
-            SyncToggleState = Library.IsMobile
-        })
-
         AutomationGroupBox:AddToggle("AutoAnchorSolver", {
             Text = "Auto Anchor Solver",
             Default = false
@@ -1616,12 +1609,12 @@ local AntiEntityGroupBox = Tabs.Exploits:AddLeftGroupbox("Anti-Entity") do
 end
 
 local TrollingGroupBox = Tabs.Exploits:AddLeftGroupbox("Trolling") do
-    TrollingGroupBox:AddToggle("ItemSpammer", {
-        Text = "Spam item",
+    TrollingGroupBox:AddToggle("SpamOtherTools", {
+        Text = "Spam Other Tools",
         Default = false
-    }):AddKeyPicker("ItemSpammer", {
+    }):AddKeyPicker("SpamOtherTools", {
         Default = "X",
-        Text = "Spam items",
+        Text = "Spam Other Tools",
         Mode = Library.IsMobile and "Toggle" or "Hold",
         SyncToggleState = Library.IsMobile
     })
@@ -1658,6 +1651,11 @@ local BypassGroupBox = Tabs.Exploits:AddRightGroupbox("Bypass") do
 
     BypassGroupBox:AddDivider()
     
+    BypassGroupBox:AddToggle("InfItems", {
+        Text = "Infinite Lockpick",
+        Default = false
+    })
+
     BypassGroupBox:AddToggle("FakeRevive", {
         Text = "Fake Revive",
         Default = false
@@ -2998,6 +2996,7 @@ Toggles.FakeRevive:OnChanged(function(value)
 				end)
 
 				Library:GiveSignal(fakeReviveConnections["ToolAnimHandler2"])
+
                 fakeReviveConnections["ToolAnimInteractHandler"] = ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt)
 					if (currentTool and table.find(doorInteractables, currentTool.Name)) and (prompt.Name == "UnlockPrompt" and prompt.Parent.Name == "Lock") then
 						if holdStart == 0 then return end
@@ -3051,7 +3050,8 @@ Toggles.FakeRevive:OnChanged(function(value)
 		end
 
 		local function usePreviewCharacter(doStepped)
-
+			-- fuck you roblox for using head instead of primarypart or char:GetPivot() 
+            -- mstudio45 2023 ^^
 			_fixDistanceFromCharacter = hookmetamethod(localPlayer, "__namecall", function(self, ...)
 				local method = getnamecallmethod();
 				local args = {...}
@@ -3631,6 +3631,38 @@ if isBackdoor then
     end))
 end
 
+Library:GiveSignal(ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+    if player ~= localPlayer or not character then return end
+    
+    local isDoorLock = prompt.Name == "UnlockPrompt" and prompt.Parent.Name == "Lock" and not prompt.Parent.Parent:GetAttribute("Opened")
+    local isSkeletonDoor = prompt.Name == "SkullPrompt" and prompt.Parent.Name == "SkullLock" and not (prompt.Parent:FindFirstChild("Door") and prompt.Parent.Door.Transparency == 1)
+    local isChestBox = prompt.Name == "ActivateEventPrompt" and prompt.Parent.Name == "ChestBoxLocked" and prompt.Parent:GetAttribute("Locked")
+    local isRoomsDoorLock = prompt.Parent.Parent.Parent.Name == "RoomsDoor_Entrance" and prompt.Enabled
+    
+    if isDoorLock or isSkeletonDoor or isChestBox or isRoomsDoorLock then
+        local equippedTool = character:FindFirstChildOfClass("Tool")
+        local toolId = equippedTool and equippedTool:GetAttribute("ID")
+
+        if Toggles.InfItems.Value and equippedTool and equippedTool:GetAttribute("UniversalKey") then
+            task.wait(isChestBox and 0.15 or 0)
+            remotesFolder.DropItem:FireServer(equippedTool)
+
+            task.spawn(function()
+                equippedTool.Destroying:Wait() 
+                task.wait(0.15)
+
+                local itemPickupPrompt = Script.Functions.GetNearestPromptWithCondition(function(prompt)
+                    return prompt.Name == "ModulePrompt" and prompt.Parent:GetAttribute("Tool_ID") == toolId
+                end)
+
+                if itemPickupPrompt then
+                    fireproximityprompt(itemPickupPrompt)
+                end
+            end)
+        end
+    end
+end))
+
 Library:GiveSignal(workspace.ChildAdded:Connect(function(child)
     task.delay(0.1, function()
         if table.find(EntityName, child.Name) then
@@ -3997,6 +4029,7 @@ Library:GiveSignal(RunService.RenderStepped:Connect(function()
         if character:FindFirstChild("LowerTorso") then
             character.LowerTorso.CanCollide = not Toggles.Noclip.Value
         end
+
         if Toggles.DoorReach.Value and workspace.CurrentRooms:FindFirstChild(latestRoom.Value) then
             local door = workspace.CurrentRooms[latestRoom.Value]:FindFirstChild("Door")
 
@@ -4010,7 +4043,11 @@ Library:GiveSignal(RunService.RenderStepped:Connect(function()
                 return PromptTable.Aura[prompt.Name] ~= nil
             end)
 
-            for _, prompt in pairs(prompts) do
+            for _, prompt: ProximityPrompt in pairs(prompts) do
+                if prompt:GetAttribute("JeffShop") then continue end
+                if prompt:FindFirstAncestorOfClass("Model").Name == "DoorFake" then continue end
+                if prompt.Parent:GetAttribute("PropType") == "Battery" and character:FindFirstChildOfClass("Tool") and character:FindFirstChildOfClass("Tool"):GetAttribute("RechargeProp") ~= "Battery" then continue end 
+
                 task.spawn(function()
                     -- checks if distance can interact with prompt and if prompt can be interacted again
                     if Script.Functions.DistanceFromCharacter(prompt.Parent) < prompt.MaxActivationDistance and (not prompt:GetAttribute("Interactions" .. localPlayer.Name) or PromptTable.Aura[prompt.Name] or table.find(PromptTable.AuraObjects, prompt.Parent.Name)) then
@@ -4020,7 +4057,7 @@ Library:GiveSignal(RunService.RenderStepped:Connect(function()
             end
         end
 
-        if Toggles.ItemSpammer.Value and  (Library.IsMobile or Options.ItemSpammer:GetState()) then
+        if Toggles.SpamOtherTools.Value and  (Library.IsMobile or Options.SpamOtherTools:GetState()) then
             for _, player in pairs(Players:GetPlayers()) do
                 if player == localPlayer then continue end
                 
@@ -4059,19 +4096,6 @@ Library:GiveSignal(RunService.RenderStepped:Connect(function()
                             Script.Functions.Alert("Solved Anchor " .. CurrentAnchor .. " successfully!", 5)
                         end
                     end)
-                end
-            end
-            
-            local isEnabledMobile = (Toggles.MinecartSpam.Value and Library.IsMobile)
-            local isEnabledPC = (Options.MinecartSpamKey:GetState() and Toggles.MinecartSpam.Value and not Library.IsMobile)
-    
-            if isEnabledMobile or isEnabledPC then
-                local prompt = Script.Functions.GetNearestPromptWithCondition(function(prompt)
-                    return prompt.Name == "PushPrompt" and prompt.Parent.Name == "Cart"
-                end)
-    
-                if prompt then
-                    fireproximityprompt(prompt)
                 end
             end
         end
@@ -4160,9 +4184,8 @@ end))
 local TATPF = Tabs.OTHR:AddLeftGroupbox("TAT Menu")
 
 TATPF:AddButton("LOAD TAT HUB FUNCTIONS", function()
-    local TATPREMF = loadstring(game:HttpGet("https://raw.githubusercontent.com/Tew41k/upioguard/refs/heads/main/src/app/key/%5Bscript_id%5D/components/TAT-F.lua"))()
+    local TATPREMF = loadstring(game:HttpGet("https://raw.githubusercontent.com/Tew41k/upioguard/refs/heads/main/scripts/TAT%20HUB.lua"))()
 end)
-
 
 --// Script Load \\--
 
