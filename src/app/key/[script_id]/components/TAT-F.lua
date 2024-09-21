@@ -17,6 +17,8 @@ local TabBypass = Window:NewTab("BYPASSES")
 local SectionFGR = TabBypass:NewSection("Figure functions:")
 
 SectionFGR:NewButton("Deaf figure", "The figure will no longer hear you", function()
-    game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder"):WaitForChild("Crouch"):FireServer(true)
-end)
-
+    while True do
+            wait(0.01)
+            game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder"):WaitForChild("Crouch"):FireServer(true)
+        end
+    end)
